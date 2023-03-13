@@ -3,8 +3,10 @@ import morgan from 'morgan'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import errorMiddleware from './middleware/error.middleware'
+import config from './config'
+import db from './database'
 
-const PORT = 3000
+const PORT = config.port || 3000
 // create an instance server
 const app: Application = express()
 // HTTP request logger middleware
@@ -23,6 +25,22 @@ app.use(
   })
 )
 
+// test db
+db.connect().then((client) => {
+  return client
+    .query('SELECT NOW()')
+    .then((res) => {
+      client.release()
+      console.log(res.rows[0].now)
+    })
+    .catch((err) => {
+      // Make sure to release the client before any error handling,
+      // just in case the error handling itself throws an error.
+      client.release()
+      console.log(err.stack)
+    })
+})
+
 // add routing for / path
 app.get('/', (req: Request, res: Response) => {
   res.json({
@@ -36,7 +54,7 @@ app.use(errorMiddleware)
 app.use((_: Request, res: Response) => {
   res.status(404).json({
     message:
-      'Ohh you are lost, read the API documentation to find your way back home 😂',
+      'Ohh you are lost, read the API documentation to find your way back home',
   })
 })
 
